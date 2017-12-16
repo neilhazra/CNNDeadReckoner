@@ -1,9 +1,16 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
@@ -30,7 +37,7 @@ public class Connect {
 		System.out.println("Enter Power (0,1)");
 		double power = scanner.nextFloat();
 	
-		file = new File("c://Users//rishi//Dropbox//MachineLearningData//DistancePowerTest//DistancePowerTest_Power//Power-" +  Double.toString(power) + (new SimpleDateFormat("MM-dd--hh-mm")).format(new Date()) + ".txt");
+		file = new File("c://Users//NeilHazra//Dropbox//MachineLearningData//DistancePowerTest//DistancePowerTest_Power" +  Double.toString(power) + ".txt");
 		file.createNewFile();
 		FileWriter writeFile = new FileWriter(file);
 		
@@ -71,6 +78,7 @@ public class Connect {
 			double rightEncoder = Double.parseDouble(data[0]);
 			double leftEncoder = Double.parseDouble(data[1]);
 			double voltage = Double.parseDouble(data[2]);
+			
 			System.out.println("Trial Ended, Enter x-distance (m)");
 			double x = scanner.nextDouble();
 			System.out.println("Enter y-distance (m)");
