@@ -39,23 +39,27 @@ boolean newData = false;
 
 void setup() {
     myBot.begin(9600);
+    pinMode(A2, INPUT);
     Serial.setTimeout(10000000);
 }
-void serialEvent()  {
 
+float getVoltage()  {
+  return mapf(analogRead(A2),0,1023,0,10);
 }
+
 void loop() {
   myBot.saveData(); //wait for data
+  Serial.println(getVoltage()); //Sends Voltaage
   processedData = myBot.getData(); //get the data
   long initial = millis(); 
   while(millis()-initial < processedData[2])  {
-      Serial.println("Running");
+      //Serial.println("Running");
       motor(1, FORWARD, mapf(processedData[0],-1,1,0,255));
       motor(2, FORWARD, mapf(processedData[1],-1,1,0,255));
       motor(4, FORWARD, mapf(processedData[0],-1,1,0,255));
       motor(3, FORWARD, mapf(processedData[1],-1,1,0,255));
   }
-    Serial.println("Stopped");
+    //Serial.println("Stopped");
     motor(1, FORWARD, 0);
     motor(2, FORWARD,0);
     motor(4, FORWARD, 0);
