@@ -10,7 +10,7 @@ import threading
 import socket
 
 width = 6.0;
-circumference = 8.04;
+circumference = 7.75;
 
 #SsocketComm
 dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,18 +28,20 @@ GPIO.setup(22, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 rightMotorCount = 0;
 leftMotorCount = 0 ;
+initialTime = time.time()*1000
 
 def RightMotorEncoder(channel):
 	global rightMotorCount;
 	#print "Right" + str(rightMotorCount)
-	rightMotorCount = rightMotorCount + 0.05
+	print "right" + str(rightMotorCount) + time.time()*1000-initialTime
+	rightMotorCount = rightMotorCount + 0.1
 def LeftMotorEncoder(channel):
 	global leftMotorCount;
-	#print "left" + str(rightMotorCount)
-	leftMotorCount = leftMotorCount + 0.05
+	print "left" + str(leftMotorCount)
+	leftMotorCount = leftMotorCount + 0.1
 
-GPIO.add_event_detect(22, GPIO.BOTH, callback=LeftMotorEncoder, bouncetime=60)
-GPIO.add_event_detect(10, GPIO.BOTH, callback=RightMotorEncoder, bouncetime=80)
+GPIO.add_event_detect(22, GPIO.FALLING, callback=LeftMotorEncoder, bouncetime = 55)
+GPIO.add_event_detect(10, GPIO.FALLING, callback=RightMotorEncoder, bouncetime = 55)
 
 
 class OutputData():
@@ -99,10 +101,10 @@ class EncoderIntegrationY(threading.Thread):
 		self.running = True
 	def run(self):
 		while self.running:
-			deltaR = rightMotorCount - self.prevREncoder
-			deltaL = leftMotorCount - self.prevLEncoder
-			self.prevREncoder = rightMotorCount
-			self.prevLEncoder = leftMotorCount
+			deltaR = rightMotorCount/20.0 - self.prevREncoder
+			deltaL = leftMotorCount/20.0 - self.prevLEncoder
+			self.prevREncoder = rightMotorCount/20.0
+			self.prevLEncoder = leftMotorCount/20.0
 			distance = circumference*(deltaR + deltaL)/2  # divide by 2
 			#self.heading = self.prevHeading + atan2(circumference*(deltaL-deltaR),width)
 			self.heading = atan2(circumference*(deltaL-deltaR),width)

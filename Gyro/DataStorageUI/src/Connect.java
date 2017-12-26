@@ -30,7 +30,7 @@ public class Connect {
 		System.out.println("Enter Power (0,1)");
 		double power = scanner.nextFloat();
 	
-		file = new File("c://Users//rishi//Dropbox//MachineLearningData//DistancePowerTest//DistancePowerTest_Power//Power-" +  Double.toString(power) + (new SimpleDateFormat("MM-dd--hh-mm")).format(new Date()) + ".txt");
+		file = new File("C://Users//NeilHazra//Dropbox//Neil Research Project//MachineLearningData//DistancePowerTest//DistancePowerTest_Power//Power-" +  Double.toString(power) + (new SimpleDateFormat("MM-dd--hh-mm")).format(new Date()) + ".txt");
 		file.createNewFile();
 		FileWriter writeFile = new FileWriter(file);
 		
@@ -40,11 +40,10 @@ public class Connect {
 		PrintWriter writer =  new PrintWriter(client.getOutputStream(), true);
 		BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 		
-		writeFile.write("Time," + "Power," + "Voltage," + "x," + "y," + "RightEncoder," + "LeftEncoder," + System.lineSeparator());
+		writeFile.write("Time, Power, Voltage, x, y, RightEncoder, LeftEncoder, EncoderX, EncoderY, Heading" + System.lineSeparator());
 		writeFile.flush();
 		int i = 1;
 		while (true) {
-			double distance = 0;
 			double time = 0;
 			String line;
 			System.out.println("Beginning Trial " + i + " Type false to end or true to continue");
@@ -57,7 +56,7 @@ public class Connect {
 			
 			writer.print(time + ";");
 			writer.print(Double.toString(power*2-1) + ";");
-			writer.println(Double.toString(power*2-1));
+			writer.println(Double.toString((power*2-1)));
 			long initialTime = System.currentTimeMillis();
 			writer.flush();
 			
@@ -71,11 +70,14 @@ public class Connect {
 			double rightEncoder = Double.parseDouble(data[0]);
 			double leftEncoder = Double.parseDouble(data[1]);
 			double voltage = Double.parseDouble(data[2]);
+			double encoderX = Double.parseDouble(data[3]);
+			double encoderY = Double.parseDouble(data[4]);
+			double heading = Double.parseDouble(data[5]);
 			System.out.println("Trial Ended, Enter x-distance (m)");
 			double x = scanner.nextDouble();
 			System.out.println("Enter y-distance (m)");
 			double y = scanner.nextDouble();
-			line = time/1000.0 + "," + power + "," + voltage + "," + x + "," + y + "," + rightEncoder + "," + leftEncoder + ","  + System.lineSeparator();
+			line = time/1000.0 + "," + power + "," + voltage + "," + x + "," + y + "," + rightEncoder + "," + leftEncoder + "," + encoderX + "," + encoderY + "," + heading + System.lineSeparator();
 			writeFile.write(line);			
 			writeFile.flush();
 			i++;
