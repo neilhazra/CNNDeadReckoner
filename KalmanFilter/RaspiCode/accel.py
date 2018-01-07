@@ -69,7 +69,7 @@ def AccelerationChangeHandler(e, acceleration, a , m, timestamp):
         i = i+1
         print gx, gy, gz
     else:
-        dynAccel = round(acceleration[1] - gx,5)*9.8
+        dynAccel = round(acceleration[1] - gy,5)*9.8
         velocityX = integrate.cumtrapz((prevDynAccel,dynAccel), dx = 0.03) + velocityX
         velocityX = velocityX[0]
         distance = integrate.cumtrapz((prevVelocity,velocityX), dx = 0.03) + distance
@@ -77,9 +77,6 @@ def AccelerationChangeHandler(e, acceleration, a , m, timestamp):
         prevVelocity = velocityX
         distance = distance[0]
         print dynAccel, velocityX, distance, timestamp
-
-
-
 try:
     ch.setOnAttachHandler(AccelerometerAttached)
     ch.setOnDetachHandler(AccelerometerDetached)
