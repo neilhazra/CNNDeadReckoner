@@ -11,9 +11,9 @@ import threading
 import numpy.matlib
 from numpy.linalg import inv
 import numpy as np
-
-
-circumference = 0.2198 #in meters TODO
+circumferenceL = 0.222 #in meters TODO
+circumferenceR = 0.223
+clicks_rotation = 1856
 #Gyro/Accel
 bno = BNO055.BNO055(serial_port='/dev/ttyAMA0', rst=18)
 if not bno.begin():
@@ -21,75 +21,11 @@ if not bno.begin():
 status, self_test, error = bno.get_system_status()
 print('System status: {0}'.format(status))
 print('Self test result (0x0F is normal): 0x{0:02X}'.format(self_test))
-if status == 0x01:
-    print('System error: {0}'.format(error))
-#a = [22, 0, 233, 255, 8, 0, 204, 1, 210, 255, 231, 255, 255, 255, 254, 255, 0, 0, 232, 3, 38, 3]
-#a = [252, 255, 9, 0, 17, 0, 201, 1, 199, 255, 48, 0, 255, 255, 253, 255, 255, 255, 232, 3, 98, 3]
-#bno.set_calibration(a)
-sw, bl, accel, mag, gyro = bno.get_revision()
 yaw = 0
 accelx = 0
 accely = 0
-#Encoders
-clicks_rotation = 1856
-REnc_A = 21
-REnc_B = 20
-stateR = 0
 rightMotorCount = 0
-LEnc_A = 19
-LEnc_B = 26
-stateL = 0
 leftMotorCount = 0
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(REnc_A, GPIO.IN)
-GPIO.setup(REnc_B, GPIO.IN)
-GPIO.setup(LEnc_A, GPIO.IN)
-GPIO.setup(LEnc_B, GPIO.IN)
-
-def rightEncoder(A_or_B):
-    global rightMotorCount, stateR
-    s = stateR & 3
-    if GPIO.input(REnc_A):
-         s = s|4
-    if GPIO.input(REnc_B):
-         s = s|8
-    if s == 0 or s == 5 or s == 10 or s == 15:
-        pass
-    elif s == 1 or s == 7 or s == 8 or s == 14:
-        rightMotorCount = rightMotorCount + 1
-    elif s == 2 or s == 4 or s == 11 or s == 13:
-        rightMotorCount = rightMotorCount - 1
-    elif s == 3 or s == 12:
-        rightMotorCount = rightMotorCount + 2
-    else:
-        rightMotorCount = rightMotorCount - 2
-    stateR = s >> 2
-    print rightMotorCount;
-    return
-def leftEncoder(A_or_B):
-    global leftMotorCount, stateL
-    s = stateL & 3
-    if GPIO.input(LEnc_A):
-         s = s|4
-    if GPIO.input(LEnc_B):
-         s = s|8
-    if s == 0 or s == 5 or s == 10 or s == 15:
-        pass
-    elif s == 1 or s == 7 or s == 8 or s == 14:
-        leftMotorCount = leftMotorCount + 1
-    elif s == 2 or s == 4 or s == 11 or s == 13:
-        leftMotorCount = leftMotorCount - 1
-    elif s == 3 or s == 12:
-        leftMotorCount = leftMotorCount + 2
-    else:
-        leftMotorCount = leftMotorCount - 2
-    stateL = s >> 2
-    return
-
-GPIO.add_event_detect(REnc_A, GPIO.BOTH, callback=rightEncoder)                 # NO bouncetime
-GPIO.add_event_detect(REnc_B, GPIO.BOTH, callback=rightEncoder)
-GPIO.add_event_detect(LEnc_A, GPIO.BOTH, callback=leftEncoder)              # NO bouncetime
-GPIO.add_event_detect(LEnc_B, GPIO.BOTH, callback=leftEncoder)
 #SsocketComm
 dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #dataSocket.connect(( '10.0.0.102', 3800)) #rishi laptop
@@ -134,6 +70,7 @@ def ReadIMU():
 class EncoderIntegration(threading.Thread):
     global rightMotorCount, leftMotorCount, yaw
     def __init__(self):
+        arduinoSerial.timeout = 0.1
         global rightMotorCount, leftMotorCount
         threading.Thread.__init__(self)
         #self.F = open("/home/pi/EncoderIntegrationData/EncoderTest" + time.strftime("%e:%H:%M", time.localtime(time.time())),"w");
@@ -149,14 +86,21 @@ class EncoderIntegration(threading.Thread):
         self.deltaR = 0
         self.running = True
     def run(self):
-        global yaw
+        global yaw, leftMotorCount, rightMotorCount
         self.initialHeading = yaw
         prevtime = time.time()
         while self.running:
+            _in = arduinoSerial.readline() #block and read newest (very fast ideally)
+            d = _in.split("\n")[0].split(";")
+            try:
+                rightMotorCount = int(d[0])
+                leftMotorCount = int(d[1])
+            except ValueError:
+                pass;
             dt = time.time() - prevtime
             prevtime  = time.time()
-            self.deltaR = (rightMotorCount - self.prevREncoder)*circumference/clicks_rotation
-            self.deltaL = (leftMotorCount - self.prevLEncoder)*circumference/clicks_rotation
+            self.deltaR = (rightMotorCount - self.prevREncoder)*circumferenceR/clicks_rotation
+            self.deltaL = (leftMotorCount - self.prevLEncoder)*circumferenceL/clicks_rotation
             self.prevREncoder = rightMotorCount
             self.prevLEncoder = leftMotorCount
             distance = (self.deltaR + self.deltaL)/2
@@ -167,8 +111,8 @@ class EncoderIntegration(threading.Thread):
             self.y = self.y + dy
             self.velocityx = dx/dt
             self.velocityy = dy/dt
-            sleep(0.05)
     def stop(self):
+        arduinoSerial.timeout = None
         self.running = False
 def wifiSocketRelayArduino(name) :
     global inputData
@@ -202,8 +146,8 @@ while True:
     wifiSocketRelayArduino("SocketArduinoComm") #gets and saves input Data from socket to arduino
     initial = time.time()*1000
     arduinoSerial.write(str(inputData.leftPower) + ";" + str(inputData.rightPower) + ";" + str(inputData.mytime) + ";\n")
-    E = EncoderIntegration()
     _in = arduinoSerial.readline()
+    E = EncoderIntegration()
     ReadIMU()
     init_heading = yaw
     E.start()
@@ -234,7 +178,6 @@ while True:
                           [0,0,dt,0],
                           [0,0,0,dt]
                         ])
-
         rotation_matrix = np.asarray([[cos(radians(yaw-init_heading)),sin(radians(yaw-init_heading))],
                                       [-sin(radians(yaw-init_heading)),cos(radians(yaw-init_heading))]
                                     ])
@@ -265,17 +208,18 @@ while True:
         [x1,p1] = kalman(y,x_0,p_0,F_k,B_k, u_k,H_k,A,R)
         x_0 = x1
         p_0 = p1
-        print yaw - init_heading
         #print np.transpose(raw)
         #print np.transpose(u_k)
         #print np.transpose(y)
         #print np.transpose(x1)
-        sleep(0.0001)
+        #sleep(0.0001)
     sleep(0.5)
     E.stop()
     E.join()
     output.update(voltage,E.x,E.y,x1[0],x1[1],E.heading)
-    s = str(output.RightEncoder)+";"+str(output.LeftEncoder)+";"+str(output.Voltage)+";"+str(output.Ex)+";"+str(output.Ey)+";"+str(output.x1)+";"+str(output.y1)+";"+str(output.heading)+";\n" #create data string
+    tempX = (E.x+0.2565*sin(radians(E.heading)))*100/2.5
+    tempY = (E.y+0.2565*(cos(radians(E.heading))-1))*100/2.5
+    s = str(output.RightEncoder)+";"+str(output.LeftEncoder)+";"+str(output.Voltage)+";"+str(output.Ex)+";"+str(output.Ey)+";"+str(tempX)+";"+str(tempY)+";"+str(output.heading)+";\n" #create data string
     dataSocket.send(s)
     rightMotorCount = 0
     leftMotorCount = 0

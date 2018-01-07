@@ -70,7 +70,7 @@ public class Connect {
 			double rightEncoder = Double.parseDouble(data[0]);
 			double leftEncoder = Double.parseDouble(data[1]);
 			double voltage = Double.parseDouble(data[2]);
-			double encoderX = 0;//Double.parseDouble(data[3]);
+			double encoderX = 0;//Double.parseDouble(data[3]); 
 			double encoderY = 0;// Double.parseDouble(data[4]);
 			double heading = 0;//Double.parseDouble(data[5]);
 			System.out.println("Trial Ended, Enter x-distance (m)");
