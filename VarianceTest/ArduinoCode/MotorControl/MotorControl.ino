@@ -53,7 +53,7 @@ float getVoltage()  {
 
 void loop() {
   myBot.saveData(); //wait for data
-  Serial.println(getVoltage()); //Sends Voltaage 
+  Serial.println(getVoltage()); //Sends Voltaage
   processedData = myBot.getData(); //get the data
   long initial = millis(); 
   int initialPosRight = rightEnc.read(); 
@@ -62,26 +62,17 @@ void loop() {
       Serial.print(leftEnc.read()-initialPosLeft);
       Serial.print(";");
       Serial.print(rightEnc.read()-initialPosRight);
-      Serial.print(";");
-      Serial.print(millis()-initial);
       Serial.println(";");
       motor(1, BACKWARD, mapf(processedData[0],-1,1,0,255));
       motor(2, BACKWARD, mapf(processedData[1],-1,1,0,255));
       motor(4, BACKWARD, mapf(processedData[0],-1,1,0,255));
       motor(3, BACKWARD, mapf(processedData[1],-1,1,0,255));
-      delay(10);
   }
-  initial = millis();
-   while((millis()-initial < 300) && processedData[2] != 0)  {
-     Serial.print(leftEnc.read()-initialPosLeft);
-     Serial.print(";");
-     Serial.println(rightEnc.read()-initialPosRight);
-     motor(1, BRAKE, 0);
-     motor(2, BRAKE,0);
-     motor(4, BRAKE, 0);
-     motor(3, BRAKE, 0);
-     delay(10);
-   }
+    motor(1, BACKWARD, 0);
+    motor(2, BACKWARD,0);
+    motor(4, BACKWARD, 0);
+    motor(3, BACKWARD, 0);
+    //delay(1);
 }
 
 float mapf(float x, float in_min, float in_max, float out_min, float out_max)
