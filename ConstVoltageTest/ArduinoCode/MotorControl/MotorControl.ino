@@ -73,11 +73,19 @@ void loop() {
       motor(4, BACKWARD, p14);
       motor(3, BACKWARD, p23);
   }
-    motor(1, BACKWARD, 0);
-    motor(2, BACKWARD,0);
-    motor(4, BACKWARD, 0);
-    motor(3, BACKWARD, 0);
-    //delay(1);
+
+   initial = millis();
+   while((millis()-initial < 500) && processedData[2] != 0)  {
+     Serial.print(leftEnc.read()-initialPosLeft);
+     Serial.print(";");
+     Serial.println(rightEnc.read()-initialPosRight);
+     motor(1, BRAKE, 0);
+     motor(2, BRAKE,0);
+     motor(4, BRAKE, 0);
+     motor(3, BRAKE, 0);
+     delay(10);
+   }
+
 }
 
 float mapf(float x, float in_min, float in_max, float out_min, float out_max)
