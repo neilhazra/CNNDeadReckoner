@@ -35,8 +35,8 @@ leftMotorCount = 0
 #SsocketComm
 dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #dataSocket.connect(( '10.0.0.102', 3800)) #rishi laptop
-dataSocket.connect(( '10.0.0.61', 3800)) #my laptop
-#dataSocket.connect(( '10.0.0.163', 3800))
+#dataSocket.connect(( '10.0.0.61', 3800)) #my laptop
+dataSocket.connect(( '10.0.0.163', 3800))
 #SerialComm
 arduinoSerial = serial.Serial('/dev/ttyACM0', 9600) #Arduino at USB port
 arduinoSerial.timeout = None #Read calls should block
@@ -350,8 +350,10 @@ while True:
                           [0, 0, 1, 0],
                           [0, 0, 0, 1],
                         ])
-        A = np.asarray(np.diag((0.003,0.003,0.003,0.003))) #dynamic noise from Accel
-        R = np.asarray(np.diag((0.00007,0.00007,0.0002,0.0002))) #from encoder
+
+        R = np.asarray(np.diag((0.00016*dt,0.00001*dt,0.00016,0.00001))) #from encoder
+
+        A = np.asarray(np.diag((0.00000754,0.00000754,0.00000754,0.00000754))) #dynamic noise from Accel
         [x1,p1] = kalman(y,x_0,p_0,F_k,B_k, u_k,H_k,A,R)
         x_0 = x1
         p_0 = p1
