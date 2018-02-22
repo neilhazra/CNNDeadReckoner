@@ -40,11 +40,19 @@ boolean newData = false;
 Encoder rightEnc(20, 21);
 Encoder leftEnc(19, 18);
 
-
+  int initialPosRight = 0;
+  int initialPosLeft = 0;
 void setup() {
     myBot.begin(9600);
     pinMode(A8, INPUT);
-    Serial.setTimeout(10000000);
+    initialPosRight = rightEnc.read(); 
+    initialPosLeft = leftEnc.read();
+    motor(1, BRAKE, 0);
+    motor(2, BRAKE,0);
+    motor(4, BRAKE, 0);
+    motor(3, BRAKE, 0);
+    while(!Serial.available());
+    Serial.setTimeout(90);
 }
 
 float getVoltage()  {
@@ -53,17 +61,12 @@ float getVoltage()  {
               
 void loop() {
   myBot.saveData(); //wait for data
-  Serial.println(getVoltage()); //Sends Voltaage
   processedData = myBot.getData(); //get the data
   long initial = millis(); 
-  int initialPosRight = rightEnc.read(); 
-  int initialPosLeft = leftEnc.read();
+  double p14 = mapf(constrain(processedData[0],0,1),0,1,0,255);
+  double p23 = mapf(constrain(processedData[1],0,1),0,1,0,255);
   
-  double p14 = mapf(processedData[0],0,getVoltage(),0,255);
-  double p23 = mapf(processedData[1],0,getVoltage(),0,255);;
-  Serial.println(p14);
- 
-  while(millis()-initial < processedData[2])  {
+  if(processedData[2] > 0)  {
       Serial.print(leftEnc.read()-initialPosLeft);
       Serial.print(";");
       Serial.print(rightEnc.read()-initialPosRight);
@@ -72,9 +75,23 @@ void loop() {
       motor(2, BACKWARD, p23);
       motor(4, BACKWARD, p14);
       motor(3, BACKWARD, p23);
+  }  else  {
+      initialPosRight = rightEnc.read(); 
+      initialPosLeft = leftEnc.read();
+      Serial.println(getVoltage()); //Sends Voltaage
+      motor(1, BRAKE, 0);
+      motor(2, BRAKE,0);
+      motor(4, BRAKE, 0);
+      motor(3, BRAKE, 0);
   }
+  
+  delay(10);
 
-   initial = millis();
+   //initial = millis();
+   
+  
+   
+   /*
    while((millis()-initial < 500) && processedData[2] != 0)  {
      Serial.print(leftEnc.read()-initialPosLeft);
      Serial.print(";");
@@ -85,7 +102,7 @@ void loop() {
      motor(3, BRAKE, 0);
      delay(10);
    }
-
+  */
 }
 
 float mapf(float x, float in_min, float in_max, float out_min, float out_max)
