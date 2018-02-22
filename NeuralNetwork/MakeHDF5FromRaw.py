@@ -11,8 +11,8 @@ size = 6
 with open("/home/nvidia/Documents/RawTrainingData/ResultData.txt") as resultData:
     for line in resultData:
         inputs = line.split(",")
-        y1.append(float(inputs[0]))
-        y2.append(float(inputs[1]))
+        y1.append(float(inputs[0])) # X
+        y2.append(float(inputs[1])) # Y
 
 for filename in os.listdir("/home/nvidia/Documents/RawTrainingData/RunData"):
     with open(os.path.join("/home/nvidia/Documents/RawTrainingData/RunData", filename)) as filei:
@@ -20,10 +20,10 @@ for filename in os.listdir("/home/nvidia/Documents/RawTrainingData/RunData"):
         for line in filei:
             inputs = line.split(",")
             table.append([float(i) for i in inputs])
-        data.append(table)
-
-data = np.reshape(data, (6, 1, 6,  10))
-
+	table = np.transpose(table)
+        data.append([table])
+data = np.array(data)
+print(data.shape)
 # shuffle the dataset, make 4/5 be training and 1/5 be testing
 train_size = int(round(size*0.8))
 
