@@ -9,7 +9,6 @@ import caffe.draw
 import google.protobuf
 caffe.set_device(0)
 caffe.set_mode_gpu()
-
 def timehelper():
 	inputArray = np.asarray([[np.transpose(input)]]);
 	net.blobs['data'].data[...] = inputArray
@@ -26,11 +25,9 @@ input = [ [0,0,0,0,0,0],
           [0,0,0,0,0,0],
           [0,0,0,0,0,0],
         ]
-
 inputArray = np.asarray([[np.transpose(input)]]);
 net.blobs['data'].data[...] = inputArray
 output = net.forward()
 import timeit
 print("NeuralNetworkRunTime"+str(timeit.Timer(timehelper).timeit(number=1000)) + "ms")
-
 print np.ravel(output['XOutput'])[0], np.ravel(output['YOutput'])[0]

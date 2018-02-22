@@ -43,12 +43,12 @@ leftMotorCount = 0
 dataSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #dataSocket.connect(( '10.0.0.102', 3800)) #rishi laptop
 dataSocket.connect(( '10.0.0.61', 3800)) #my laptop
-#dataSocket.connect(( '10.0.0.163', 3800)) #Dad laptop
+#dataSocket.connect(( '10.0.0.139', 3800)) #Dad laptop
 #read ML model from file
-regrXEncModel = '/home/pi/MLRobot/EncX-model.sav'
-regrYEncModel = '/home/pi/MLRobot/EncY-model.sav'
-regrXAccModel = '/home/pi/MLRobot/AccX-model.sav'
-regrYAccModel = '/home/pi/MLRobot/AccY-model.sav'
+regrXEncModel = '/home/pi/MLRobot/Archived/EncX-model.sav'
+regrYEncModel = '/home/pi/MLRobot/Archived/EncY-model.sav'
+regrXAccModel = '/home/pi/MLRobot/Archived/AccX-model.sav'
+regrYAccModel = '/home/pi/MLRobot/Archived/AccY-model.sav'
 regrXEnc = pickle.load(open(regrXEncModel, 'rb'))
 regrYEnc = pickle.load(open(regrYEncModel, 'rb'))
 regrXAcc = pickle.load(open(regrXAccModel, 'rb'))
@@ -291,6 +291,7 @@ class EncoderIntegration(threading.Thread):
         self.initialTime = time.time()
     def startIntegrating(self):
         arduinoSerial.timeout = 0.01
+        arduinoSerial.flushInput()
         line = "##########Next Run######### Trial " + str(trialNumber) + "\nRightEncoder,LeftEncoder,VeclocityX,VelocityY,DistanceX,DistanceY,Time\n"
         self.F.write(line);
         self.running = True
@@ -319,31 +320,31 @@ def kalman(observed, prevState,prevCov,stateTrans,controlMat, controlVec, H ,dyn
     x_update = np.add(x_predict, np.matmul(K,yresid))
     p_update = np.subtract(p_predict,np.matmul(np.matmul(K,H),p_predict))
     return (x_update, p_update)
+
 class PID():
     def __init__(self,integral,derivative,errorLast):
         self.integral = integral
         self.derivative = derivative
         self.errorLast = errorLast
-        self.Kp=0.0005
-        self.Ki=0
-        self.Kd=0.0
-        self.deadBand = 0.001
+        self.Kp= 10 #125
+        self.Ki= 0.5
+        self.Kd= 5
+
     def getControlledOutput (self,error, dt):
         self.errorLast = error
-        if abs(error) <= self.deadBand:
-            output = 0
-        else:
-            output = ((self.Kp * error) + (self.Ki * self.integral)) + (self.Kd * self.derivative)
-
+        output = ((self.Kp * error) + (self.Ki * self.integral)) + (self.Kd * self.derivative)
         self.integral += (error * dt);
         self.derivative = (error - self.errorLast) / dt;
         return output
+
 AccelBind = AccelerometerBind()
 E = EncoderIntegration()
 E.start()
 AccelBind.ch.setDataInterval(int(1000))
 kalmFile = open("/home/pi/MLRobot/Data2/KalmanFilterRealTime" + time.strftime("%e:%H:%M:%S", time.localtime(time.time())),"w");
 logger =  open("/home/pi/MLRobot/Data2/FullLogger" + time.strftime("%e:%H:%M:%S", time.localtime(time.time())),"w");
+pidFile =  open("/home/pi/MLRobot/PID" + time.strftime("%e-%H-%M-%S", time.localtime(time.time())) + '.csv',"w");
+
 #Main Trial Loop
 while True:
     line = "##########Next Run######### Trial " + str(trialNumber) + "\nTime,KalmanX,KalmanY,KalmanVX,KalmanVY\n"
@@ -351,33 +352,35 @@ while True:
     s = str(output.Voltage)+";"+str(output.Ex)+";"+str(output.Ey)+";"+str(output.accelIntX)+";"+str(output.accelIntY) +";"+str(output.x1)+";"+str(output.y1) +";\n" #create data string
     line = "##########Next Run######### Trial " + str(trialNumber) + "\nTime,KalmanX,KalmanY,AccelDispX, AccelDispY,EncoderX, EncoderY, KalmanVX,KalmanVY, AccelVX, AccelVY, EncoderVX, EncoderVY\n"
     logger.write(line)
+    line = "Time,LeftEncoder,RightEncoder,delta,pidout,E.x,LeftPower,RightPower\n"
+    pidFile.write(line);
     AccelBind.ch.setDataInterval(int(1000))
     try:
         wifiSocketRelayArduino("SocketArduinoComm") #gets and saves input Data from socket to arduino
+
     except socket.error as e:
         AccelBind.ch.close()
         print "Closed"
         raise
     AccelBind.start()
     #Change for PID control; set time=0
-    baseLeftMotorPower = 0.35
-    baseRightMotorPower = 0.65
+    baseLeftMotorPower = 0.45
+    baseRightMotorPower = 0.55
 
-    print "BeforeRead"
     #try to read arduino data
     arduinoSerial.timeout = 0.1
+    arduinoSerial.flushInput()
     while True:
         arduinoSerial.write(str(0) + ";" + str(0) + ";" + str(-1) + ";\n")
-        print "Trying to read voltage"
         _in = arduinoSerial.readline()
         print _in
         try:
             voltage = float(_in.rstrip("\n"))
-            print "Voltage Read"
             break
         except ValueError:
             voltage = -1
     arduinoSerial.timeout = None
+    arduinoSerial.flushInput()
     arduinoSerial.write(str(0) + ";" + str(0) + ";" + str(10) + ";\n")
     E.startIntegrating()
     x_0 = np.asarray([[0],     #Initial State Vector
@@ -396,18 +399,18 @@ while True:
     #initialize
     prevEncDispX = prevEncDispY = 0
     prevAccDispX = prevAccDispY = 0
+    leftMotorPower = baseLeftMotorPower
+    rightMotorPower = baseRightMotorPower
     gaussX = gaussY = 0
     totalDispX = totalDispY = 0
 
     pid = PID(0.0,0.0,0.0)
-    print 'myTime:' + str(inputData.mytime)
 
     arduinoSerial.write(str(baseLeftMotorPower) + ";" + str(baseRightMotorPower) + ";" + str(100) + ";\n")
     #while (time.time()-initTime)*1000<(inputData.mytime) or not abs(E.velocityy) < 0.001 : #wait half second extra
     #To do: Let the robot run until target is reached; check (initialDistanceToTarget - gaussY) <= 0.001 (1 mm)
     while (time.time()-initTime)*1000 < (inputData.mytime):
         dt = time.time()-prevtime
-        print 'in second while loop'
         prevtime = time.time()
         F_k = np.asarray([[1,0,dt,0],     #Prediction Matrix
                           [0,1,0,dt],
@@ -434,32 +437,45 @@ while True:
         deltaEncDispY = E.y - prevEncDispY
         deltaAccDispX = AccelBind.dynAccel[0] - prevAccDispX
         deltaAccDispY = AccelBind.dynAccel[1] - prevAccDispY
-        print 'Acc.x,deltaAccDispX:' + str(AccelBind.dynAccel[0]) + ',' + str(deltaAccDispX)
         #store past cycle data
         prevEncDispX = E.x
         prevEncDispY = E.y
         prevAccDispX = AccelBind.dynAccel[0]
         prevAccDispY = AccelBind.dynAccel[1]
         # Use ML model to estimate the distance; convert to cm
-        [gaussX,gaussY] = calculateGaussianDistance(deltaEncDispX*100,deltaEncDispY*100,deltaAccDispX*100,deltaAccDispY*100,dt)
+        #[gaussX,gaussY] = calculateGaussianDistance(deltaEncDispX*100,deltaEncDispY*100,deltaAccDispX*100,deltaAccDispY*100,dt)
         #print 'gaussX/gaussY:' + str(gaussX) +'/' + str(gaussY)
         #calculate total displacement since start
-        totalDispX += deltaEncDispX
-        totalDispY += deltaEncDispY
-        #print 'totalDispX, totalDispY:' + str(totalDispX) + ',' + str(totalDispY)
+        totalDispX += gaussX
+        totalDispY += gaussY
         # Use PID here
-        pidOut = pid.getControlledOutput(leftMotorCount-rightMotorCount,dt)
+        pidOut = pid.getControlledOutput(E.x,dt)
+        #pidOut = pid.getControlledOutput(leftMotorCount-rightMotorCount,dt)
+        #Error is positive => leftMotor is moving faster, so apply more power to the RightMotor
+        leftMotorPower  = baseLeftMotorPower - pidOut
+        rightMotorPower = baseRightMotorPower + pidOut
 
-        #Error is negative => facing the target, the robot is going towards right, so apply more power to the right motor
-        leftMotorPower  = baseLeftMotorPower - pidOut #*(1 - pidOut*0.5/(deltaEncDispY+0.0001))
-        rightMotorPower = baseRightMotorPower + pidOut#*(1 + pidOut*0.5/(deltaEncDispY+0.0001))
+        # if (leftMotorPower>.9):
+        #     leftMotorPower=.9
+        # if (leftMotorPower<0.1):
+        #     leftMotorPower=0.1
+        # if (rightMotorPower>.9):
+        #     rightMotorPower=.9
+        # if (rightMotorPower<0.1):
+        #     rightMotorPower=0.1
 
-        #print 'E.x/E.y:' + str(E.x) + '/' + str(E.y)
+        #print 'Accelerometer X/Y:' + str(AccelBind.dynAccel[0]) + '/' + str(AccelBind.dynAccel[1])
         print 'Encoder Left/Right:' + str(leftMotorCount) + '/' + str(rightMotorCount)
+        print 'E.x/E.y:' + str(E.x) + '/' + str(E.y)
+        #print 'deltaEncDispX/deltaEncDispY:' + str(deltaEncDispX) + '/' + str(deltaEncDispY)
+        #print 'totalDispX/totalDispY:' + str(totalDispX) + '/' + str(totalDispY)
         print 'PID Out:' + str(pidOut)
         print 'leftPower/rightPower:' + str(leftMotorPower) +  '/' + str(rightMotorPower)
+        print '-----------------------------------------------------------------------------'
+        line = str(time.time()) + ',' + str(leftMotorCount) + ',' + str(rightMotorCount) + ',' + str(leftMotorCount-rightMotorCount) + ',' + str(pidOut) +',' + str(E.x) + ',' + str(leftMotorPower) + ',' + str(rightMotorPower) + '\n'
+        pidFile.write(line);
 
-        arduinoSerial.write(str(rightMotorPower) + ";" + str(leftMotorPower) + ";" + str(100) + ";\n")
+        arduinoSerial.write(str(rightMotorPower) + ";" + str(leftMotorPower) + ";" + str(10) + ";\n")
         #end of PID control
 
         y = np.asarray([[gaussX/100], #x from Gauss-Markov, convert to meter
@@ -485,7 +501,7 @@ while True:
         line =  str(time.time()-initTime) + "," + str(np.ravel(x_0[0])[0]) + "," + str(np.ravel(x_0[1])[0]) + "," + str(AccelBind.distance[0]) + "," + str(AccelBind.distance[1]) + "," + str(E.x) + "," + str(E.y) + ","
         line = line + str(np.ravel(x_0[2])[0]) + "," + str(np.ravel(x_0[3])[0]) + "," + str(AccelBind.velocity[0]) + "," + str(AccelBind.velocity[1]) + "," + str(E.velocityx) + "," + str(E.velocityy) + "\n"
         logger.write(line)
-        sleep(0.05)
+        sleep(0.005)
     arduinoSerial.write(str(0) + ";" + str(0) + ";" + str(10) + ";\n")
     sleep(0.2);
     E.stop()

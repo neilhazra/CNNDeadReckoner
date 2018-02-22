@@ -14,14 +14,14 @@ with open("/home/nvidia/Documents/RawTrainingData/ResultData.txt") as resultData
         y1.append(float(inputs[0])) # X
         y2.append(float(inputs[1])) # Y
 
-for filename in os.listdir("/home/nvidia/Documents/RawTrainingData/RunData"):
+for filename in sorted(os.listdir("/home/nvidia/Documents/RawTrainingData/RunData")):
     with open(os.path.join("/home/nvidia/Documents/RawTrainingData/RunData", filename)) as filei:
         table = []
         for line in filei:
             inputs = line.split(",")
             table.append([float(i) for i in inputs])
-	table = np.transpose(table)
-        data.append([table])
+        #print(np.transpose(table))
+        data.append([np.transpose(table)])
 data = np.array(data)
 print(data.shape)
 # shuffle the dataset, make 4/5 be training and 1/5 be testing

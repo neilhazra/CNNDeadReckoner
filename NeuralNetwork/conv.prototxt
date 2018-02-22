@@ -163,7 +163,16 @@ layer {
   bottom: "fcYout"
   top: "YOutput"
 }
-
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "XOutput"
+  bottom: "labelX"
+  top: "accuracy"
+  include {
+    phase: TEST
+  }
+}
 layer {
   name: "lossX"
   type: "EuclideanLoss"

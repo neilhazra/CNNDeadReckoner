@@ -40,8 +40,8 @@ boolean newData = false;
 Encoder rightEnc(20, 21);
 Encoder leftEnc(19, 18);
 
-  int initialPosRight = 0;
-  int initialPosLeft = 0;
+ long initialPosRight = 0;
+ long initialPosLeft = 0;
 void setup() {
     myBot.begin(9600);
     pinMode(A8, INPUT);
@@ -78,6 +78,7 @@ void loop() {
   }  else  {
       initialPosRight = rightEnc.read(); 
       initialPosLeft = leftEnc.read();
+
       Serial.println(getVoltage()); //Sends Voltaage
       motor(1, BRAKE, 0);
       motor(2, BRAKE,0);

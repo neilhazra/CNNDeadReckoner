@@ -6,7 +6,7 @@ lr_policy: "step" # step means to decrease lr after a number of iterations
 gamma: 0.1 # ratio of decrement in each step
 stepsize: 100 # how often do we step (should be called step_interval)
 display: 50 # how often do we print training loss
-max_iter: 50
+max_iter: 500
 momentum: 1
 weight_decay: 0.0005 # regularization!
 snapshot: 500 # taking snapshot is like saving your progress in a game
