@@ -39,11 +39,29 @@ RoboLib myBot(dataSizeConst,dataSizeConst*5);
 float* processedData;
 boolean newData = false;
 Encoder leftEnc(19, 37);
-Encoder rightEnc(18, 36);
-
- long initialPosRight = 0;
- long initialPosLeft = 0;
- long initLidarPos = 0;
+Encoder rightEnc(18, 36);;
+int prevTime = millis();
+int sendingPeriod = 100;
+long initialPosRight = 0;
+long initialPosLeft = 0;
+long initLidarPos = 0;
+const int bufferSize = 10;
+int* circularBuffer = new int[bufferSize];
+int prevTime2 = 0;
+double p14 = 0;
+double p23 = 0;
+double getAvg()  {
+  double sum = 0;
+  for(int j = 0; j < bufferSize; j++)  {
+    sum += circularBuffer[j];
+  }
+  return sum/float(bufferSize);
+}
+void pushCircularBuffer(int reading)  {
+  static int i = 0;
+  circularBuffer[i%bufferSize]= reading;
+  i++;
+}
 void setup() {
     Wire.begin(0x62);
     myBot.begin(9600);
@@ -54,76 +72,69 @@ void setup() {
     motor(2, BRAKE,0);
     motor(4, BRAKE, 0);
     motor(3, BRAKE, 0);
-    while(!Serial.available());
-    Serial.setTimeout(90);
+    while(!Serial) {
+        motor(1, BRAKE, 0);
+        motor(2, BRAKE,0);
+        motor(4, BRAKE, 0);
+        motor(3, BRAKE, 0); 
+    }    
 }
 
 float getVoltage()  {
   return mapf(analogRead(A8),0,1023,0,10);
 }
-              
-void loop() {
-  myBot.saveData(); //wait for data
-  processedData = myBot.getData(); //get the data
-  long initial = millis(); 
-  double p14 = mapf(constrain(processedData[0],0,1),0,1,0,255);
-  double p23 = mapf(constrain(processedData[1],0,1),0,1,0,255);
+void serialEvent()  {
   
+}
+void loop() {
   Wire.beginTransmission(0x62);
   Wire.write(0x00);
   Wire.write(0x04);  
   Wire.endTransmission();  
-  //delay(20);
   Wire.beginTransmission(0x62);
   Wire.write(0x80 | 0x0f);
   Wire.endTransmission();	
   Wire.requestFrom(0x62, 2);
   int distanceh = Wire.read();
   int distanceL =  Wire.read();
-  int distance = distanceL | distanceh<<8;
-  //Serial.println(distance);
+  int distance = distanceL | distanceh<<8 - 0;
+  pushCircularBuffer(distance);
   Wire.endTransmission();  
-  //delay(20); 
-  if(processedData[2] > 0)  {
-      Serial.print(leftEnc.read()-initialPosLeft);
-      Serial.print(";");
-      Serial.print(rightEnc.read()-initialPosRight);
-      Serial.print(";");
-      Serial.print(distance- initLidarPos);
-      Serial.print(";\n");
-      motor(1, BACKWARD, p14);
-      motor(2, BACKWARD, p23);
-      motor(4, BACKWARD, p14);
-      motor(3, BACKWARD, p23);
-  }  else  {
-      initialPosRight = rightEnc.read(); 
-      initialPosLeft = leftEnc.read();
-      initLidarPos = distance;
-      Serial.println(getVoltage()); //Sends Voltaage
-      motor(1, BRAKE, 0);
-      motor(2, BRAKE,0);
-      motor(4, BRAKE, 0);
-      motor(3, BRAKE, 0);
-  }
-  
-  delay(10);
 
-   //initial = millis();
-   
-  
-   
-   /*
-   while((millis()-initial < 500) && processedData[2] != 0)  {
-     Serial.print(leftEnc.read()-initialPosLeft);
-     Serial.print(";");
-     Serial.println(rightEnc.read()-initialPosRight);
-     motor(1, BRAKE, 0);
-     motor(2, BRAKE,0);
-     motor(4, BRAKE, 0);
-     motor(3, BRAKE, 0);
-     delay(10);
-   }
-  */
+   if(Serial.available() || millis() - prevTime2 > 50)  {
+      prevTime2 = millis();
+      if(Serial.available())  {
+        myBot.saveData(); //wait for data
+      }
+      processedData = myBot.getData(); //get the data
+      long initial = millis(); 
+      p14= mapf(constrain(processedData[0],0,1),0,1,0,255);
+      p23= mapf(constrain(processedData[1],0,1),0,1,0,255);
+      int avgdistance = getAvg();
+      if(millis()- prevTime > sendingPeriod)  {
+        if(processedData[2] > 0)  {
+              Serial.print(leftEnc.read()-initialPosLeft);
+              Serial.print(";");
+              Serial.print(rightEnc.read()-initialPosRight);
+              Serial.print(";");
+              Serial.print(avgdistance- initLidarPos);
+              Serial.print(";\n");
+              motor(1, BACKWARD, p14);
+              motor(2, BACKWARD, p23);
+              motor(4, BACKWARD, p14);
+              motor(3, BACKWARD, p23);
+        }  else  {
+            initialPosRight = rightEnc.read(); 
+            initialPosLeft = leftEnc.read();
+            initLidarPos = avgdistance;
+            Serial.println(getVoltage()); //Sends Voltaage
+            motor(1, BRAKE, 0);
+            motor(2, BRAKE,0);
+            motor(4, BRAKE, 0);
+            motor(3, BRAKE, 0);
+        }
+      }
+    }
 }
 
 float mapf(float x, float in_min, float in_max, float out_min, float out_max)
