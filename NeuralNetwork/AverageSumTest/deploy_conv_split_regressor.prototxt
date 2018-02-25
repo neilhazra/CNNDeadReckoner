@@ -1,32 +1,10 @@
 name: "Regressor"
 
 layer {
-  name: "train_data"
-  type: "HDF5Data"
-  top: "data"
-  top: "labelX"
-  top: "labelY"
-  include {
-    phase: TRAIN
-  }
-  hdf5_data_param {
-    source: "/home/nvidia/Documents/NNInputData/train-path.txt"
-    batch_size: 6
-  }
-}
-layer {
-  name: "test_data"
-  type: "HDF5Data"
-  top: "data"
-  top: "labelX"
-  top: "labelY"
-  include {
-    phase: TEST
-  }
-  hdf5_data_param {
-    source: "/home/nvidia/Documents/NNInputData/test-path.txt"
-    batch_size: 6
-  }
+    name: "data"
+    type: "Input"
+    top: "data"
+    input_param { shape: { dim: 1 dim: 1 dim: 6 dim: 10 } }
 }
 
 layer {
@@ -162,28 +140,4 @@ layer {
   }
   bottom: "fcYout"
   top: "YOutput"
-}
-layer {
-  name: "accuracy"
-  type: "Accuracy"
-  bottom: "XOutput"
-  bottom: "labelX"
-  top: "accuracy"
-  include {
-    phase: TEST
-  }
-}
-layer {
-  name: "lossX"
-  type: "EuclideanLoss"
-  bottom: "labelX"
-  bottom: "XOutput"
-  loss_weight: 0.5
-}
-layer {
-  name: "lossY"
-  type: "EuclideanLoss"
-  bottom: "labelY"
-  bottom: "YOutput"
-  loss_weight: 0.5
 }

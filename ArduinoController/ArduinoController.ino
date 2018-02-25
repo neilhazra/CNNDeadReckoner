@@ -33,15 +33,17 @@
 
 #include <Encoder.h>
 #include <RoboLib.h>
+#include <Wire.h>
 const int dataSizeConst = 6;
 RoboLib myBot(dataSizeConst,dataSizeConst*5);
 float* processedData;
 boolean newData = false;
-Encoder rightEnc(20, 21);
-Encoder leftEnc(19, 18);
+Encoder leftEnc(19, 37);
+Encoder rightEnc(18, 36);
 
  long initialPosRight = 0;
  long initialPosLeft = 0;
+ long initLidarPos = 0;
 void setup() {
     Wire.begin(0x62);
     myBot.begin(9600);
@@ -71,21 +73,23 @@ void loop() {
   Wire.write(0x00);
   Wire.write(0x04);  
   Wire.endTransmission();  
-  delay(20);
+  //delay(20);
   Wire.beginTransmission(0x62);
   Wire.write(0x80 | 0x0f);
   Wire.endTransmission();	
   Wire.requestFrom(0x62, 2);
   int distanceh = Wire.read();
   int distanceL =  Wire.read();
+  int distance = distanceL | distanceh<<8;
+  //Serial.println(distance);
   Wire.endTransmission();  
-  delay(20); 
+  //delay(20); 
   if(processedData[2] > 0)  {
       Serial.print(leftEnc.read()-initialPosLeft);
       Serial.print(";");
       Serial.print(rightEnc.read()-initialPosRight);
       Serial.print(";");
-      Serial.print(distanceL | distanceh<<8 ,DEC);
+      Serial.print(distance- initLidarPos);
       Serial.print(";\n");
       motor(1, BACKWARD, p14);
       motor(2, BACKWARD, p23);
@@ -94,7 +98,7 @@ void loop() {
   }  else  {
       initialPosRight = rightEnc.read(); 
       initialPosLeft = leftEnc.read();
-
+      initLidarPos = distance;
       Serial.println(getVoltage()); //Sends Voltaage
       motor(1, BRAKE, 0);
       motor(2, BRAKE,0);

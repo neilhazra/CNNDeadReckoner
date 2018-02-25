@@ -220,7 +220,7 @@ output = OutputData(0) #initial values
 class EncoderIntegration(threading.Thread):
     global rightMotorCount, leftMotorCount, trialNumber, lidarDistance
     def __init__(self):
-        global rightMotorCount, leftMotorCount, trialNumber, lidarDistance
+        global rightMotorCount, leftMotorCount, trialNumber
         threading.Thread.__init__(self)
         self.prevREncoder = 0
         self.prevLEncoder = 0
@@ -236,7 +236,7 @@ class EncoderIntegration(threading.Thread):
         self.initialTime = time.time()
         self.F = open("/home/pi/MLRobot/Data2/EncoderRawIntegrated" + time.strftime("%m-%e-%H-%M-%S", time.localtime(time.time())) + '.csv',"w");
     def run(self):
-        global leftMotorCount, rightMotorCount, lidarDistance
+        global leftMotorCount, rightMotorCount
         self.initialTime = prevtime = time.time()
         x = []
         y = []
@@ -450,7 +450,7 @@ while True:
 
         # Use PID here
         pidOut = pid.getControlledOutput(E.x,dt)
-        print "XDistance(cm) " + str(lidarDistance/100.0)
+        print lidarDistance
         #Error is positive => leftMotor is moving faster, so apply more power to the RightMotor
         leftMotorPower  = baseLeftMotorPower - pidOut
         rightMotorPower = baseRightMotorPower + pidOut
@@ -506,5 +506,5 @@ while True:
     leftMotorCount = 0
     print "Stopped"
     pidFile.flush()
-    #print str(pidFile)
+    print str(pidFile)
     sleep(2);
