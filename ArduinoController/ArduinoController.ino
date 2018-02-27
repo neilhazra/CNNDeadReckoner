@@ -45,7 +45,7 @@ int sendingPeriod = 100;
 long initialPosRight = 0;
 long initialPosLeft = 0;
 long initLidarPos = 0;
-const int bufferSize = 10;
+const int bufferSize = 2;
 int* circularBuffer = new int[bufferSize];
 int prevTime2 = 0;
 double p14 = 0;
@@ -91,6 +91,7 @@ void loop() {
   Wire.write(0x00);
   Wire.write(0x04);  
   Wire.endTransmission();  
+  delay(25);
   Wire.beginTransmission(0x62);
   Wire.write(0x80 | 0x0f);
   Wire.endTransmission();	
@@ -100,17 +101,18 @@ void loop() {
   int distance = distanceL | distanceh<<8 - 0;
   pushCircularBuffer(distance);
   Wire.endTransmission();  
-
-   if(Serial.available() || millis() - prevTime2 > 50)  {
+  delay(25);
+   if(Serial.available() || millis() - prevTime2 > 100)  {
       prevTime2 = millis();
       if(Serial.available())  {
+        //Serial.print("Serial Available");
         myBot.saveData(); //wait for data
       }
       processedData = myBot.getData(); //get the data
       long initial = millis(); 
       p14= mapf(constrain(processedData[0],0,1),0,1,0,255);
       p23= mapf(constrain(processedData[1],0,1),0,1,0,255);
-      int avgdistance = getAvg();
+      double avgdistance = getAvg();
       if(millis()- prevTime > sendingPeriod)  {
         if(processedData[2] > 0)  {
               Serial.print(leftEnc.read()-initialPosLeft);
