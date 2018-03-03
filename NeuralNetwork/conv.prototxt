@@ -1,0 +1,217 @@
+name: "Regressor"
+
+layer {
+  name: "train_data"
+  type: "HDF5Data"
+  top: "data"
+  top: "labelX"
+  top: "labelY"
+  include {
+    phase: TRAIN
+  }
+  hdf5_data_param {
+    source: "/home/nvidia/Documents/RealDataTraining/HDF5FormattedTrainingData/train-path.txt"
+    batch_size: 256
+  }
+}
+layer {
+  name: "test_data"
+  type: "HDF5Data"
+  top: "data"
+  top: "labelX"
+  top: "labelY"
+  include {
+    phase: TEST
+  }
+  hdf5_data_param {
+    source: "/home/nvidia/Documents/RealDataTraining/HDF5FormattedTrainingData/test-path.txt"
+    batch_size: 256
+  }
+}
+
+layer {
+  name: "SplitTimeSeries"
+  type: "Convolution"
+  bottom: "data"
+  top: "conv"
+  convolution_param {
+    num_output: 7
+    kernel_h: 6
+    kernel_w: 1
+    stride_w: 1
+    stride_h: 6
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "secondconv"
+  type: "Convolution"
+  bottom: "conv"
+  top: "conv2"
+  convolution_param {
+    num_output: 7
+    kernel_size: 1
+    stride: 1
+    #axis: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "thirdconv"
+  type: "Convolution"
+  bottom: "conv2"
+  top: "conv3"
+  convolution_param {
+    num_output: 2
+    kernel_size: 1
+    stride: 1
+    #axis: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+
+layer {
+  name: "SplitXY"
+  type: "Slice"
+  bottom: "conv3"
+
+  top: "ConvSlicedX"
+  top: "ConvSlicedY"
+  slice_param {
+    axis: 1
+    slice_point: 1
+  }
+}
+
+
+
+layer {
+  name: "fcY"
+  type: "InnerProduct"
+  # learning rate and decay multipliers for the weights
+  param { lr_mult: 1 decay_mult: 1 }
+  # learning rate and decay multipliers for the biases
+  param { lr_mult: 2 decay_mult: 0 }
+  inner_product_param {
+    num_output: 7
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "ConvSlicedY"
+  top: "fcXout"
+}
+layer {
+  name: "fcX"
+  type: "InnerProduct"
+  # learning rate and decay multipliers for the weights
+  param { lr_mult: 1 decay_mult: 1 }
+  # learning rate and decay multipliers for the biases
+  param { lr_mult: 2 decay_mult: 0 }
+  inner_product_param {
+    num_output: 7
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "ConvSlicedX"
+  top: "fcYout"
+}
+
+
+layer {
+  name: "XOutput"
+  type: "InnerProduct"
+  # learning rate and decay multipliers for the weights
+  param { lr_mult: 1 decay_mult: 1 }
+  # learning rate and decay multipliers for the biases
+  param { lr_mult: 2 decay_mult: 0 }
+  inner_product_param {
+    num_output: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "fcXout"
+  top: "XOutput"
+}
+
+layer {
+  name: "YOutput"
+  type: "InnerProduct"
+  # learning rate and decay multipliers for the weights
+  param { lr_mult: 1 decay_mult: 1 }
+  # learning rate and decay multipliers for the biases
+  param { lr_mult: 2 decay_mult: 0 }
+  inner_product_param {
+    num_output: 1
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "fcYout"
+  top: "YOutput"
+}
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "XOutput"
+  bottom: "labelX"
+  top: "accuracy"
+  include {
+    phase: TEST
+  }
+}
+layer {
+  name: "lossX"
+  type: "EuclideanLoss"
+  bottom: "labelX"
+  bottom: "XOutput"
+  loss_weight: 0.5
+}
+layer {
+  name: "lossY"
+  type: "EuclideanLoss"
+  bottom: "labelY"
+  bottom: "YOutput"
+  loss_weight: 0.5
+}

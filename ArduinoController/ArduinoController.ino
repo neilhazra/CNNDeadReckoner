@@ -115,9 +115,9 @@ void loop() {
       double avgdistance = getAvg();
       if(millis()- prevTime > sendingPeriod)  {
         if(processedData[2] > 0)  {
-              Serial.print(leftEnc.read()-initialPosLeft);
+              Serial.print(leftEnc.read());
               Serial.print(";");
-              Serial.print(rightEnc.read()-initialPosRight);
+              Serial.print(rightEnc.read());
               Serial.print(";");
               Serial.print(avgdistance- initLidarPos);
               Serial.print(";\n");
@@ -126,10 +126,11 @@ void loop() {
               motor(4, BACKWARD, p14);
               motor(3, BACKWARD, p23);
         }  else  {
-            initialPosRight = rightEnc.read(); 
-            initialPosLeft = leftEnc.read();
+            rightEnc.write(0);
+            leftEnc.write(0);
             initLidarPos = avgdistance;
             Serial.println(getVoltage()); //Sends Voltaage
+            Serial.flush();
             motor(1, BRAKE, 0);
             motor(2, BRAKE,0);
             motor(4, BRAKE, 0);

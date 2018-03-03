@@ -46,7 +46,7 @@ print(data.shape)
 print(len(y1))
 print(len(y2))
 size = data.shape[0]
-train_size = int(round(size*0.95)) #test vs train
+train_size = int(round(size*0.8))
 
 x_train = data[:train_size]
 x_test = data[train_size:]
