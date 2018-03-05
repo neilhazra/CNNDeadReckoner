@@ -1,0 +1,151 @@
+name: "Regressor"
+
+layer {
+  name: "train_data"
+  type: "HDF5Data"
+  top: "dataY"
+  top: "labelX"
+  top: "labelY"
+  include {
+    phase: TRAIN
+  }
+  hdf5_data_param {
+    source: "/home/nvidia/Documents/RealDataTraining/HDF5FormattedTrainingData/train-path.txt"
+    batch_size: 256
+  }
+}
+layer {
+  name: "test_data"
+  type: "HDF5Data"
+  top: "dataY"
+  top: "labelX"
+  top: "labelY"
+  include {
+    phase: TEST
+  }
+  hdf5_data_param {
+    source: "/home/nvidia/Documents/RealDataTraining/HDF5FormattedTrainingData/test-path.txt"
+    batch_size: 256
+  }
+}
+
+layer {
+  name: "SplitTimeSeries"
+  type: "Convolution"
+  bottom: "dataY"
+  top: "conv"
+  convolution_param {
+    num_output: 6
+    kernel_h: 6
+    kernel_w: 1
+    stride_w: 1
+    stride_h: 6
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "secondconv"
+  type: "Convolution"
+  bottom: "conv"
+  top: "conv2"
+  convolution_param {
+    num_output: 6
+    kernel_size: 1
+    stride: 1
+    #axis: 2
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+
+
+layer {
+  name: "fc"
+  type: "InnerProduct"
+  # learning rate and decay multipliers for the weights
+  param { lr_mult: 1 decay_mult: 1 }
+  # learning rate and decay multipliers for the biases
+  param { lr_mult: 2 decay_mult: 0 }
+  inner_product_param {
+    num_output: 12
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "conv2"
+  top: "fcout"
+}
+layer {
+  name: "fc2"
+  type: "InnerProduct"
+  # learning rate and decay multipliers for the weights
+  param { lr_mult: 1 decay_mult: 1 }
+  # learning rate and decay multipliers for the biases
+  param { lr_mult: 2 decay_mult: 0 }
+  inner_product_param {
+    num_output: 2
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+  bottom: "fcout"
+  top: "fcout2"
+}
+layer {
+  name: "SplitXY"
+  type: "Slice"
+  bottom: "fcout2"
+  top: "X"
+  top: "Y"
+  slice_param {
+    axis: 1
+    slice_point: 1
+  }
+}
+
+layer {
+  name: "accuracy"
+  type: "Accuracy"
+  bottom: "X"
+  bottom: "labelX"
+  top: "accuracy"
+  include {
+    phase: TEST
+  }
+}
+layer {
+  name: "lossX"
+  type: "EuclideanLoss"
+  bottom: "labelX"
+  bottom: "X"
+  loss_weight: 0
+}
+layer {
+  name: "lossY"
+  type: "EuclideanLoss"
+  bottom: "labelY"
+  bottom: "Y"
+  loss_weight: 1
+}
