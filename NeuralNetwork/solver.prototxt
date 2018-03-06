@@ -1,12 +1,12 @@
 net: "conv.prototxt" # path to the network definition
 test_iter: 1 # how many mini-batches to test in each validation phase
 test_interval: 10000 # how often do we call the test phase
-base_lr: 3e-4 # base learning rate
+base_lr: 1e-4 # base learning rate
 lr_policy: "step" # step means to decrease lr after a number of iterations
 gamma: 0.1 # ratio of decrement in each step
-stepsize:  5000 # how often do we step (should be called step_interval)
+stepsize:  10000 # how often do we step (should be called step_interval)
 display: 1 # how often do we print training loss
-max_iter: 5000
+max_iter: 20000
 momentum: 0.9
 weight_decay: 0.005 # regularization!
 snapshot: 5000 # taking snapshot is like saving your progress in a game

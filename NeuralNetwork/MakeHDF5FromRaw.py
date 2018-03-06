@@ -36,7 +36,7 @@ for filename in sorted(files):
                     data.append([np.transpose(np.array(table))])
                     prevIteration = iteration
                     table = []
-                table.append([float(inputs[5]), float(inputs[4]), float(inputs[12]),float(inputs[11]),float(inputs[13])*voltage[iteration-1],float(inputs[6])*voltage[iteration-1]])
+                table.append([float(inputs[16]), float(inputs[4]), float(inputs[7]),float(inputs[14]),float(inputs[13])*voltage[iteration-1],float(inputs[6])*voltage[iteration-1]])
         while np.array(table).shape[0] < 70:
             table.append(np.zeros(features))
         data.append([np.transpose(table)])

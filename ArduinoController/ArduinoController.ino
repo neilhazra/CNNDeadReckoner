@@ -130,6 +130,7 @@ void loop() {
             leftEnc.write(0);
             initLidarPos = avgdistance;
             Serial.println(getVoltage()); //Sends Voltaage
+            delay(20);
             Serial.flush();
             motor(1, BRAKE, 0);
             motor(2, BRAKE,0);
